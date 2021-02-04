@@ -19,6 +19,9 @@ heapless = "0.7"
 rusb = "0.9.1"
 rand = "0.8.5"
 
+[dependencies]
+embedded-dma = "0.1.2"
+
 [features]
 # Use a 256 byte buffer for control transfers instead of 128.
 control-buffer-256 = []

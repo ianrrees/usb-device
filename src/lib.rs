@@ -209,6 +209,7 @@ pub mod class_prelude {
 fn _ensure_sync() {
     use crate::bus::PollResult;
     use crate::class_prelude::*;
+    use embedded_dma::{ReadBuffer};
 
     struct DummyBus<'a> {
         _a: &'a str,
@@ -232,6 +233,10 @@ fn _ensure_sync() {
         fn set_device_address(&self, _addr: u8) {}
 
         fn write(&self, _ep_addr: EndpointAddress, _buf: &[u8]) -> Result<usize> {
+            Err(UsbError::InvalidEndpoint)
+        }
+
+        fn start_write_dma<T: ReadBuffer>(&self, _ep_addr: EndpointAddress, _buf: T, _size_bytes: usize) -> Result<()> {
             Err(UsbError::InvalidEndpoint)
         }
 

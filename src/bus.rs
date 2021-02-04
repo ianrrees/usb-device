@@ -7,6 +7,7 @@ use core::cell::RefCell;
 use core::mem;
 use core::ptr;
 use portable_atomic::{AtomicPtr, Ordering};
+use embedded_dma::{ReadBuffer};
 
 /// A trait for device-specific USB peripherals. Implement this to add support for a new hardware
 /// platform.
@@ -80,6 +81,9 @@ pub trait UsbBus: Sync + Sized {
     ///
     /// Implementations may also return other errors if applicable.
     fn write(&self, ep_addr: EndpointAddress, buf: &[u8]) -> Result<usize>;
+
+    /// Consumes DMA ReadBuffer 'buf', prepares it to be sent by next IN transaction
+    fn start_write_dma<T: ReadBuffer>(&self, ep_addr: EndpointAddress, buf: T, size_bytes: usize) -> Result<()>;
 
     /// Reads a single packet of data from the specified endpoint and returns the actual length of
     /// the packet.

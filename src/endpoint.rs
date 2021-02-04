@@ -2,6 +2,7 @@ use crate::bus::UsbBus;
 use crate::{Result, UsbDirection};
 use core::marker::PhantomData;
 use portable_atomic::{AtomicPtr, Ordering};
+use embedded_dma::{ReadBuffer};
 
 /// Trait for endpoint type markers.
 pub trait EndpointDirection {
@@ -193,6 +194,24 @@ impl<B: UsbBus> Endpoint<'_, B, In> {
     ///   the class implementation.
     pub fn write(&self, data: &[u8]) -> Result<usize> {
         self.bus().write(self.address, data)
+    }
+
+    /// Sets up the endpoint to write the data in `buffer` in the next packet.  `buffer` must
+    /// remain valid until the packet has been sent.  `buffer` must be 32-bit aligned, and
+    /// be at least `size_bytes` long.
+    /// 
+    /// # Errors
+    ///
+    /// Note: USB bus implementation errors are directly passed through, so be prepared to handle
+    /// other errors as well.
+    ///
+    /// * [`WouldBlock`](crate::UsbError::WouldBlock) - The USB peripheral has pending data which
+    ///   hasn't been read by the host.
+    /// * [`Unsupported`](crate::UsbError::Unsupported) - Supplied buffer is not 32-bit aligned.
+    /// * [`BufferOverflow`](crate::UsbError::BufferOverflow) - `size_bytes` is longer than the
+    ///   supplied `buffer`.
+    pub fn start_write_dma<T: ReadBuffer>(&self, buffer: T, size_bytes: usize) -> Result<()> {
+        self.bus().start_write_dma(self.address, buffer, size_bytes)
     }
 }
 
