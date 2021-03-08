@@ -7,7 +7,7 @@ use core::cell::RefCell;
 use core::mem;
 use core::ptr;
 use portable_atomic::{AtomicPtr, Ordering};
-use embedded_dma::{ReadBuffer};
+use embedded_dma::{ReadBuffer, WriteBuffer};
 
 /// A trait for device-specific USB peripherals. Implement this to add support for a new hardware
 /// platform.
@@ -107,6 +107,9 @@ pub trait UsbBus: Sync + Sized {
     ///
     /// Implementations may also return other errors if applicable.
     fn read(&self, ep_addr: EndpointAddress, buf: &mut [u8]) -> Result<usize>;
+
+
+    fn swap_read_dma<T: WriteBuffer>(&self, ep_addr: EndpointAddress, buffer: T) -> Result<(UsbReadBuffer, usize)>;
 
     /// Sets or clears the STALL condition for an endpoint. If the endpoint is an OUT endpoint, it
     /// should be prepared to receive data again.
@@ -385,4 +388,18 @@ pub enum PollResult {
     /// A USB resume request has been detected after being suspended or, in the case of self-powered
     /// devices, the device has been connected to the USB bus.
     Resume,
+}
+
+/// Used to return the buffer supplied in a previous call to swap_read_dma()
+pub struct UsbReadBuffer {
+    pub pointer: *const u8,
+    pub size: usize,
+}
+
+unsafe impl ReadBuffer for UsbReadBuffer {
+    type Word = u8;
+
+    unsafe fn read_buffer(&self) -> (*const Self::Word, usize) {
+        (self.pointer, self.size)
+    }
 }
