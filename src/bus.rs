@@ -1,6 +1,6 @@
 use crate::endpoint::{
-    Endpoint, EndpointAddress, EndpointDirection, EndpointType, IsochronousSynchronizationType,
-    IsochronousUsageType,
+    DmaBuffer, Endpoint, EndpointAddress, EndpointBuffer, EndpointDirection, EndpointType,
+    IsochronousSynchronizationType, IsochronousUsageType, StaticBuffer,
 };
 use crate::{Result, UsbDirection, UsbError};
 use core::cell::RefCell;
@@ -224,13 +224,13 @@ impl<B: UsbBus> UsbBusAllocator<B> {
     ///
     /// This directly delegates to [`UsbBus::alloc_ep`], so see that method for details. In most
     /// cases classes should call the endpoint type specific methods instead.
-    pub fn alloc<D: EndpointDirection>(
+    pub fn alloc<D: EndpointDirection, M: EndpointBuffer>(
         &self,
         ep_addr: Option<EndpointAddress>,
         ep_type: EndpointType,
         max_packet_size: u16,
         interval: u8,
-    ) -> Result<Endpoint<'_, B, D>> {
+    ) -> Result<Endpoint<'_, B, D, M>> {
         self.bus
             .borrow_mut()
             .alloc_ep(D::DIRECTION, ep_addr, ep_type, max_packet_size, interval)
@@ -252,7 +252,10 @@ impl<B: UsbBus> UsbBusAllocator<B> {
     /// Panics if endpoint allocation fails, because running out of endpoints or memory is not
     /// feasibly recoverable.
     #[inline]
-    pub fn control<D: EndpointDirection>(&self, max_packet_size: u16) -> Endpoint<'_, B, D> {
+    pub fn control<D: EndpointDirection, M: EndpointBuffer>(
+        &self,
+        max_packet_size: u16,
+    ) -> Endpoint<'_, B, D, M> {
         self.alloc(None, EndpointType::Control, max_packet_size, 0)
             .expect("alloc_ep failed")
     }
@@ -303,7 +306,10 @@ impl<B: UsbBus> UsbBusAllocator<B> {
     /// Panics if endpoint allocation fails, because running out of endpoints or memory is not
     /// feasibly recoverable.
     #[inline]
-    pub fn bulk<D: EndpointDirection>(&self, max_packet_size: u16) -> Endpoint<'_, B, D> {
+    pub fn bulk<D: EndpointDirection, M: EndpointBuffer>(
+        &self,
+        max_packet_size: u16,
+    ) -> Endpoint<'_, B, D, M> {
         self.alloc(None, EndpointType::Bulk, max_packet_size, 0)
             .expect("alloc_ep failed")
     }
@@ -318,11 +324,11 @@ impl<B: UsbBus> UsbBusAllocator<B> {
     /// Panics if endpoint allocation fails, because running out of endpoints or memory is not
     /// feasibly recoverable.
     #[inline]
-    pub fn interrupt<D: EndpointDirection>(
+    pub fn interrupt<D: EndpointDirection, M: EndpointBuffer>(
         &self,
         max_packet_size: u16,
         interval: u8,
-    ) -> Endpoint<'_, B, D> {
+    ) -> Endpoint<'_, B, D, M> {
         self.alloc(None, EndpointType::Interrupt, max_packet_size, interval)
             .expect("alloc_ep failed")
     }
