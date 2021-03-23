@@ -30,6 +30,7 @@ pub trait UsbBus: Sync + Sized {
     ///   attempt to return an endpoint with the specified address. If None, the implementation
     ///   should return the next available one.
     /// * `max_packet_size` - Maximum packet size in bytes.
+    /// * `buffer_size` - Size of data buffer to allocate.
     /// * `interval` - Polling interval parameter for interrupt endpoints.
     ///
     /// # Errors
@@ -108,8 +109,12 @@ pub trait UsbBus: Sync + Sized {
     /// Implementations may also return other errors if applicable.
     fn read(&self, ep_addr: EndpointAddress, buf: &mut [u8]) -> Result<usize>;
 
-
-    fn swap_read_dma<T: WriteBuffer>(&self, ep_addr: EndpointAddress, buffer: T) -> Result<(UsbReadBuffer, usize)>;
+    /// Accepts a buffer for the next OUT transfer, returns filled buffer from the previous transfer
+    fn swap_read_dma<T: WriteBuffer>(
+        &self,
+        ep_addr: EndpointAddress,
+        buffer: T,
+    ) -> Result<(UsbReadBuffer, usize)>;
 
     /// Sets or clears the STALL condition for an endpoint. If the endpoint is an OUT endpoint, it
     /// should be prepared to receive data again.
@@ -220,7 +225,7 @@ impl<B: UsbBus> UsbBusAllocator<B> {
         StringIndex(index)
     }
 
-    /// Allocates an endpoint with the specified direction and address.
+    /// Allocates an endpoint with a static data buffer for the specified direction and address.
     ///
     /// This directly delegates to [`UsbBus::alloc_ep`], so see that method for details. In most
     /// cases classes should call the endpoint type specific methods instead.
@@ -398,7 +403,9 @@ pub enum PollResult {
 
 /// Used to return the buffer supplied in a previous call to swap_read_dma()
 pub struct UsbReadBuffer {
+    /// Beginning of the buffer
     pub pointer: *const u8,
+    /// Size of the buffer in bytes
     pub size: usize,
 }
 

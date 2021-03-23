@@ -4,7 +4,7 @@ use core::marker::PhantomData;
 use portable_atomic::{AtomicPtr, Ordering};
 use embedded_dma::{ReadBuffer, WriteBuffer};
 
-/// Trait for endpoint type markers.
+/// Trait for endpoint direction type markers.
 pub trait EndpointDirection {
     /// Direction value of the marker type.
     const DIRECTION: UsbDirection;
